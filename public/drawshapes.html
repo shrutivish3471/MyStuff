@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Leaflet.draw Plugin</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://d19vzq90twjlae.cloudfront.net/leaflet-0.7/leaflet.css" />
+    <link 
+        rel="stylesheet" 
+        href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"
+    />
+    <style>
+        html, body,  #map {
+          width : 100%;
+          height : 100%;
+        }
+  </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script src="https://d19vzq90twjlae.cloudfront.net/leaflet-0.7/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@5/turf.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.8.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.8.0/addons/p5.dom.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.js"></script>
+    <script>
+        var map = L.map('map').setView([29.679415 , -95.3939551 ], 4);
+        mapLink = 
+            '<a href="http://openstreetmap.org">OpenStreetMap</a>';
+        L.tileLayer(
+            'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; ' + mapLink + ' Contributors',
+            maxZoom: 18,
+            }).addTo(map);
+
+		var LeafIcon = L.Icon.extend({
+			options: {
+				shadowUrl: 
+				    'http://leafletjs.com/examples/custom-icons/leaf-shadow.png',
+				iconSize:     [38, 95],
+				shadowSize:   [50, 64],
+				iconAnchor:   [22, 94],
+				shadowAnchor: [4, 62],
+				popupAnchor:  [-3, -76]
+			}
+		});
+
+		var greenIcon = new LeafIcon({
+			iconUrl: 'http://leafletjs.com/examples/custom-icons/leaf-green.png'
+			});
+
+            var drawnItems = new L.FeatureGroup();
+		map.addLayer(drawnItems);
+
+		var drawControl = new L.Control.Draw({
+			position: 'topright',
+			draw: {
+				polygon: {
+					shapeOptions: {
+						color: 'purple'
+					},
+					allowIntersection: false,
+					drawError: {
+						color: 'orange',
+						timeout: 1000
+					},
+					showArea: true,
+					metric: false,
+					repeatMode: true
+				},
+				polyline: {
+					shapeOptions: {
+						color: 'red'
+					},
+				},
+				rect: {
+					shapeOptions: {
+						color: 'green'
+					},
+				},
+				circle: {
+					shapeOptions: {
+						color: 'steelblue'
+					},
+				},
+				marker: {
+					icon: greenIcon
+				},
+			},
+			edit: {
+				featureGroup: drawnItems
+			}
+		});
+		map.addControl(drawControl);
+
+		
+		map.on('draw:created', function (e) {
+			var type = e.layerType,
+				layer = e.layer;
+
+			if (type === 'marker') {
+				layer.bindPopup('A popup!');
+			}
+
+			drawnItems.addLayer(layer);
+
+            if(type === 'circle'){
+            const theCenterPt = layer.getLatLng();
+            const center = [theCenterPt.lng,theCenterPt.lat]; 
+			const lati = theCenterPt.lng;
+			const longi = theCenterPt.lat;
+			const radius = layer.getRadius();
+			const unit = 'meters';
+			
+			const datalatlng = {lati, longi};
+            console.log(center);
+			console.log(datalatlng);
+			console.log('The Radius of the drawn circle is :', radius, 'meters');
+
+			const data = {type, lati, longi, radius, unit};
+			const options = {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(data)
+			};
+			const response = fetch('/api', options);
+			const jsonresponse = response.json;
+			console.log(jsonresponse);			
+            }
+
+
+            if(type === 'rectangle'){
+                console.log('This is a Rectangle shape');
+                const boundpt = layer.getBounds();
+				console.log('North East Coordinates is', boundpt.getNorthEast());
+				console.log('South West Coordinates is', boundpt.getSouthWest());
+				console.log(boundpt);
+                           
+            }
+
+            if(type === 'polygon'){
+                var polylatlng = layer.getLatLngs();
+                console.log(polylatlng);
+            }
+
+		});
+    </script>
+</body>
+</html>

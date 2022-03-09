@@ -1,0 +1,162 @@
+
+
+<font class="maplayout">
+	<p>This is the <b>Home Page</b> of the GeoFence Application.</p>
+ <div id="map"></div>    
+ <style>
+        #map {
+          width : 950px;
+          height : 500px;
+        }
+  </style>
+    
+    <script src="https://d19vzq90twjlae.cloudfront.net/leaflet-0.7/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@5/turf.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.8.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.8.0/addons/p5.dom.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.js"></script>
+    <script>
+        var map = L.map('map').setView([29.679415 , -95.3939551 ], 5);
+        mapLink = 
+            '<a href="http://openstreetmap.org">OpenStreetMap</a>';
+        L.tileLayer(
+            'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; ' + mapLink + ' Contributors',
+            maxZoom: 18,
+            }).addTo(map);
+
+		var LeafIcon = L.Icon.extend({
+			options: {
+				shadowUrl: 
+				    'http://leafletjs.com/examples/custom-icons/leaf-shadow.png',
+				iconSize:     [38, 95],
+				shadowSize:   [50, 64],
+				iconAnchor:   [22, 94],
+				shadowAnchor: [4, 62],
+				popupAnchor:  [-3, -76]
+			}
+		});
+
+		var greenIcon = new LeafIcon({
+			iconUrl: 'http://leafletjs.com/examples/custom-icons/leaf-green.png'
+			});
+
+            var drawnItems = new L.FeatureGroup();
+		map.addLayer(drawnItems);
+
+		var drawControl = new L.Control.Draw({
+			position: 'topright',
+			draw: {
+				polygon: {
+					shapeOptions: {
+						color: 'purple'
+					},
+					allowIntersection: false,
+					drawError: {
+						color: 'orange',
+						timeout: 1000
+					},
+					showArea: true,
+					metric: false,
+					repeatMode: true
+				},
+				polyline: {
+					shapeOptions: {
+						color: 'red'
+					},
+				},
+				rect: {
+					shapeOptions: {
+						color: 'green'
+					},
+				},
+				circle: {
+					shapeOptions: {
+						color: 'steelblue'
+					},
+				},
+				marker: {
+					icon: greenIcon
+				},
+			},
+			edit: {
+				featureGroup: drawnItems
+			}
+		});
+		map.addControl(drawControl);
+
+		
+		map.on('draw:created', function (e) {
+			var type = e.layerType,
+				layer = e.layer;
+
+			if (type === 'marker') {
+				layer.bindPopup('A popup!');
+			}
+
+			drawnItems.addLayer(layer);
+
+            if(type === 'circle'){
+            const theCenterPt = layer.getLatLng();
+            const center = [theCenterPt.lng,theCenterPt.lat]; 
+			const lati = theCenterPt.lng;
+			const longi = theCenterPt.lat;
+			const radius = layer.getRadius();
+			const unit = 'meters';
+			
+			const datalatlng = {lati, longi};
+            console.log(center);
+			console.log(datalatlng);
+			console.log('This is the correct rendering!');
+			console.log('The Radius of the drawn circle is :', radius, 'meters');
+
+			const data = {type, lati, longi, radius, unit};
+			const options = {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(data)
+			};
+			const response = fetch('/api', options);
+			const jsonresponse = response.json;
+			console.log(jsonresponse);			
+            }
+
+
+            if(type === 'rectangle'){
+                console.log('This is a Rectangle shape');
+				//type.addLayer(layer);
+    			const seeArea = L.GeometryUtil.geodesicArea(layer.getLatLngs());
+    			console.log(seeArea);
+                const boundpt = layer.getBounds();
+				console.log('North East Coordinates is', boundpt.getNorthEast());
+				console.log('South West Coordinates is', boundpt.getSouthWest());
+				const latiN = boundpt.getNorthEast().lat;
+				const longiN = boundpt.getNorthEast().lng;
+				const latiS = boundpt.getSouthWest().lat;
+				const longiS = boundpt.getSouthWest().lng; 
+				
+				const data = {type, latiN, longiN, latiS, longiN, seeArea};
+			const options = {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(data)
+			};
+			const response = fetch('/api', options);
+			const jsonresponse = response.json;
+			console.log(jsonresponse);
+                           
+            }
+
+            if(type === 'polygon'){
+                var polylatlng = layer.getLatLngs();
+                console.log(polylatlng);
+            }
+
+		});
+    </script>
+  </font>
